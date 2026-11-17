@@ -1,0 +1,19 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: agent-admin
+  jackson:
+    default-property-inclusion: non_null
+  ai:
+    openai:
+      base-url: ${LLM_BASE_URL:https://api.openai.com}
+      api-key: ${LLM_API_KEY:local-demo-key-not-used}
+
+agent:
+  intent:
+    provider: ${INTENT_PROVIDER:mock}
+    confidence-threshold: ${INTENT_CONFIDENCE_THRESHOLD:0.75}
+    model: ${LLM_MODEL:qwen-plus}
+    temperature: ${LLM_TEMPERATURE:0.0}
