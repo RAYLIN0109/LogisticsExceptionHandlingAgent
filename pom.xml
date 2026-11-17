@@ -14,8 +14,10 @@
 
   <modules>
     <module>backend/agent-common</module>
+    <module>backend/agent-business</module>
     <module>backend/agent-core</module>
     <module>backend/agent-admin</module>
+    <module>backend/agent-mcp</module>
   </modules>
 
   <properties>
@@ -51,6 +53,11 @@
       <dependency>
         <groupId>com.logistics.agent</groupId>
         <artifactId>agent-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.logistics.agent</groupId>
+        <artifactId>agent-business</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

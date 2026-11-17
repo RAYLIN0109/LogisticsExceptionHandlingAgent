@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="物流异常电联智能处理 Agent 项目阶段汇报：业务背景、系统架构、Agent 交互逻辑、当前成果与下一步计划。">
+  <title>物流异常电联智能处理 Agent｜项目阶段汇报</title>
+  <style>
+    :root {
+      --paper: #f3f6f8;
+      --surface: #ffffff;
+      --ink: #142b3a;
+      --muted: #62717c;
+      --line: #d8e0e5;
+      --route: #2563a9;
+      --route-soft: #eaf2fa;
+      --signal: #c5681b;
+      --signal-soft: #fff2e5;
+      --done: #247054;
+      --planned: #7c858c;
+      --code: #173c56;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 16px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a:focus-visible, button:focus-visible {
+      outline: 3px solid rgba(37, 99, 169, .35);
+      outline-offset: 4px;
+    }
+    code {
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: .9em;
+      color: var(--code);
+      overflow-wrap: anywhere;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(20, 43, 58, .12);
+      background: rgba(243, 246, 248, .96);
+      backdrop-filter: blur(12px);
+    }
+    .topbar-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      min-height: 64px;
+      padding: 0 30px;
+      display: flex;
+      align-items: center;
+      gap: 26px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: auto;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      white-space: nowrap;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: #fff;
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+    .nav-links { display: flex; gap: 22px; }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--route); }
+    .print-button {
+      border: 1px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      padding: 7px 13px;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .print-button:hover { background: var(--ink); color: #fff; }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 30px 70px;
+    }
+    .hero {
+      padding: 64px 0 50px;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 70px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 20px;
+      color: var(--route);
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 28px; height: 3px; background: var(--route); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 640px;
+      margin-bottom: 24px;
+      font-family: "Arial Narrow", "Microsoft YaHei", sans-serif;
+      font-size: clamp(38px, 5vw, 66px);
+      line-height: 1.15;
+      letter-spacing: -.055em;
+      font-weight: 800;
+    }
+    h1 .accent { color: var(--route); }
+    .hero-summary {
+      max-width: 580px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.85;
+    }
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .65);
+      padding: 6px 11px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .status-chip strong { color: var(--ink); font-family: Consolas, monospace; font-size: 15px; }
+
+    .route-ticket {
+      position: relative;
+      border: 1px solid #bdc9d1;
+      background: var(--surface);
+      box-shadow: 14px 14px 0 #e1e8ec;
+    }
+    .ticket-head {
+      padding: 18px 24px;
+      border-bottom: 1px dashed #aebcc5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .ticket-head strong { font-size: 14px; letter-spacing: .08em; }
+    .ticket-head span { color: var(--muted); font: 12px Consolas, monospace; }
+    .customer-quote { padding: 24px; font-size: 21px; font-weight: 700; line-height: 1.5; }
+    .route-comparison { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+    .route-option { padding: 22px 24px 26px; }
+    .route-option + .route-option { border-left: 1px solid var(--line); background: var(--route-soft); }
+    .route-option .label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font: 11px Consolas, monospace;
+      letter-spacing: .12em;
+    }
+    .route-option strong { display: block; margin-bottom: 8px; font-size: 16px; }
+    .route-option p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .route-option.agent strong { color: var(--route); }
+    .barcode {
+      height: 34px;
+      margin: 0 24px 14px;
+      background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 6px, transparent 6px 10px);
+      opacity: .72;
+    }
+    .ticket-number { display: block; padding: 0 24px 20px; text-align: center; font: 11px Consolas, monospace; letter-spacing: .2em; }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+    .fact { padding: 20px 24px; }
+    .fact + .fact { border-left: 1px solid var(--line); }
+    .fact strong { display: block; font: 700 24px Consolas, monospace; }
+    .fact span { color: var(--muted); font-size: 12px; }
+
+    .report-section {
+      position: relative;
+      padding: 70px 0 20px 54px;
+      scroll-margin-top: 50px;
+    }
+    .report-section::before {
+      content: "";
+      position: absolute;
+      left: 13px;
+      top: 84px;
+      bottom: 0;
+      width: 1px;
+      background: #bdc9d1;
+    }
+    .report-section::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 82px;
+      width: 11px;
+      height: 11px;
+      border: 1px solid var(--route);
+      background: var(--paper);
+    }
+    .section-kicker {
+      margin-bottom: 8px;
+      color: var(--route);
+      font: 700 12px Consolas, monospace;
+      letter-spacing: .12em;
+    }
+    h2 {
+      margin-bottom: 16px;
+      font-size: clamp(27px, 3.2vw, 40px);
+      line-height: 1.3;
+      letter-spacing: -.035em;
+    }
+    .section-intro { max-width: 850px; margin-bottom: 30px; color: var(--muted); }
+    .section-intro strong { color: var(--ink); }
+
+    .old-flow {
+      display: grid;
+      grid-template-columns: 1fr 34px 1fr 34px 1.25fr;
+      align-items: stretch;
+      gap: 10px;
+      margin: 28px 0;
+    }
+    .flow-node {
+      padding: 20px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .flow-node small { display: block; color: var(--muted); font: 11px Consolas, monospace; margin-bottom: 7px; }
+    .flow-node strong { font-size: 15px; }
+    .flow-arrow { display: grid; place-items: center; color: var(--route); font-size: 25px; }
+    .outcome-split { display: grid; gap: 8px; }
+    .outcome { padding: 12px 16px; background: var(--signal-soft); border-left: 3px solid var(--signal); font-size: 13px; }
+
+    .pain-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .pain-card {
+      border-top: 2px solid var(--ink);
+      background: var(--surface);
+      padding: 22px 24px;
+    }
+    .pain-card h3 { margin-bottom: 8px; font-size: 16px; }
+    .pain-card p { margin-bottom: 12px; color: var(--muted); font-size: 14px; }
+    .pain-card .answer { color: var(--route); font-size: 13px; font-weight: 700; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 22px; margin: 20px 0 12px; color: var(--muted); font-size: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 8px; }
+    .legend-line { width: 30px; border-top: 2px solid var(--route); }
+    .legend-line.planned { border-top-color: var(--planned); border-top-style: dashed; }
+    .diagram-shell {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      overflow-x: auto;
+    }
+    .diagram-shell svg { display: block; width: 100%; min-width: 980px; height: auto; }
+    .scroll-hint { display: none; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+    .diagram-caption { padding: 14px 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .svg-label { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; fill: var(--ink); }
+    .svg-muted { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; fill: var(--muted); }
+    .svg-code { font-family: Consolas, monospace; fill: var(--code); }
+
+    .example-strip {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      margin-top: 18px;
+      border: 1px solid #b7c9d8;
+      background: var(--route-soft);
+    }
+    .example-strip strong { padding: 20px; border-right: 1px solid #b7c9d8; color: var(--route); }
+    .example-strip p { padding: 20px; margin: 0; font-size: 14px; }
+
+    .tool-list { border-top: 1px solid var(--ink); }
+    .tool-row {
+      display: grid;
+      grid-template-columns: minmax(245px, .8fr) 1.2fr;
+      gap: 28px;
+      padding: 17px 8px;
+      border-bottom: 1px solid var(--line);
+      align-items: baseline;
+    }
+    .tool-row code { font-weight: 700; }
+    .tool-row span { color: var(--muted); font-size: 14px; }
+    .readonly-note { margin-top: 14px; color: var(--muted); font-size: 13px; }
+
+    .boundary { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); }
+    .boundary-column { padding: 26px 30px; background: var(--surface); }
+    .boundary-column + .boundary-column { border-left: 1px solid var(--line); }
+    .boundary-column h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 17px; }
+    .boundary-column h3::before { content: ""; width: 9px; height: 9px; background: var(--route); }
+    .boundary-column:last-child h3::before { background: var(--ink); }
+    .boundary-column ul { margin: 0; padding-left: 19px; color: var(--muted); font-size: 14px; }
+    .boundary-column li + li { margin-top: 8px; }
+
+    .proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .proof-card { padding: 22px; background: var(--surface); border: 1px solid var(--line); }
+    .proof-card .proof-status { display: block; margin-bottom: 14px; color: var(--done); font: 700 11px Consolas, monospace; letter-spacing: .1em; }
+    .proof-card strong { display: block; margin-bottom: 7px; }
+    .proof-card p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .next-list { margin-top: 30px; border-top: 1px solid var(--ink); }
+    .next-item {
+      display: grid;
+      grid-template-columns: 50px 1fr 1.2fr;
+      gap: 20px;
+      padding: 20px 8px;
+      border-bottom: 1px solid var(--line);
+      align-items: baseline;
+    }
+    .next-item .priority { color: var(--route); font: 700 14px Consolas, monospace; }
+    .next-item strong { font-size: 14px; }
+    .next-item span:last-child { color: var(--muted); font-size: 13px; }
+
+    .closing {
+      margin: 60px 0 0 54px;
+      padding: 34px 38px;
+      background: var(--ink);
+      color: #fff;
+    }
+    .closing p { max-width: 920px; margin: 0; font-size: 20px; line-height: 1.75; }
+    .closing strong { color: #a9d2f4; }
+    .footer { margin: 26px 0 0 54px; display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font: 11px Consolas, monospace; }
+
+    @media (max-width: 980px) {
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 44px; }
+      .hero-summary { max-width: 720px; }
+      .route-ticket { max-width: 720px; }
+      .facts { grid-template-columns: repeat(2, 1fr); }
+      .fact:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+      .fact:nth-child(4) { border-top: 1px solid var(--line); }
+      .proof-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .topbar-inner, .page { padding-left: 18px; padding-right: 18px; }
+      .topbar-inner { min-height: 56px; }
+      .brand { font-size: 10px; letter-spacing: .06em; }
+      .brand-mark { width: 24px; height: 24px; }
+      .print-button { padding: 5px 9px; }
+      .hero { padding: 36px 0 34px; }
+      h1 { font-size: 39px; }
+      .hero-summary { font-size: 16px; }
+      .ticket-head, .customer-quote, .route-option { padding-left: 17px; padding-right: 17px; }
+      .customer-quote { font-size: 18px; }
+      .route-comparison { grid-template-columns: 1fr; }
+      .route-option + .route-option { border-left: 0; border-top: 1px solid var(--line); }
+      .fact { padding: 15px; }
+      .fact strong { font-size: 20px; }
+      .report-section { padding: 54px 0 12px 26px; }
+      .report-section::before { left: 5px; top: 66px; }
+      .report-section::after { left: 0; top: 64px; width: 9px; height: 9px; }
+      .old-flow { grid-template-columns: 1fr; }
+      .flow-arrow { transform: rotate(90deg); min-height: 24px; }
+      .pain-grid, .boundary { grid-template-columns: 1fr; }
+      .boundary-column + .boundary-column { border-left: 0; border-top: 1px solid var(--line); }
+      .scroll-hint { display: block; }
+      .example-strip { grid-template-columns: 1fr; }
+      .example-strip strong { border-right: 0; border-bottom: 1px solid #b7c9d8; padding-bottom: 10px; }
+      .example-strip p { padding-top: 14px; }
+      .tool-row { grid-template-columns: 1fr; gap: 4px; padding: 15px 4px; }
+      .next-item { grid-template-columns: 32px 1fr; gap: 8px; }
+      .next-item span:last-child { grid-column: 2; }
+      .closing, .footer { margin-left: 26px; }
+      .closing { padding: 26px; }
+      .closing p { font-size: 17px; }
+      .footer { flex-direction: column; gap: 5px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { transition: none !important; animation: none !important; }
+    }
+
+    @media print {
+      body { background: #fff; font-size: 11pt; }
+      .topbar, .scroll-hint { display: none; }
+      .page { max-width: none; padding: 0; }
+      .hero { padding-top: 20px; grid-template-columns: 1fr 1fr; gap: 30px; }
+      h1 { font-size: 34pt; }
+      .route-ticket { box-shadow: none; }
+      .report-section { break-inside: auto; padding-top: 42px; }
+      .pain-card, .proof-card, .example-strip, .closing, .diagram-shell { break-inside: avoid; }
+      .diagram-shell { overflow: visible; }
+      .diagram-shell svg { min-width: 0; }
+      .closing { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+      .closing strong { color: var(--route); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="brand-mark">YZD</span>CALL HANDLING / STAGE REPORT</div>
+      <nav class="nav-links" aria-label="汇报目录">
+        <a href="#background">背景痛点</a>
+        <a href="#architecture">系统架构</a>
+        <a href="#interaction">Agent 交互</a>
+        <a href="#progress">当前成果</a>
+      </nav>
+      <button class="print-button" type="button" onclick="window.print()">打印汇报</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Logistics Exception Agent · 2026-11-17</p>
+        <h1 id="page-title">从识别一通电话，<br>到<span class="accent">处置一张运单</span></h1>
+        <p class="hero-summary">以圆准达 95 号电联打标流程为蓝本，让客户意图不再停留在一个标签，而是结合运单状态、配送偏好和网点规则，形成可解释、可审核、可执行的处置方案。</p>
+        <div class="status-line" aria-label="项目状态">
+          <span class="status-chip"><strong>已落地</strong> 意图识别 + MCP 工具底座</span>
+          <span class="status-chip"><strong>规划中</strong> 自主编排 + 审核执行闭环</span>
+        </div>
+      </div>
+
+      <div class="route-ticket" aria-label="同一句客户诉求在两种流程中的不同处理结果">
+        <div class="ticket-head"><strong>电联处置路由单</strong><span>YT123456789</span></div>
+        <div class="customer-quote">“我白天不在家，<br>把快递放小区门卫就行。”</div>
+        <div class="route-comparison">
+          <div class="route-option">
+            <span class="label">BEFORE / 原流程</span>
+            <strong>指定地点 → 普通上门</strong>
+            <p>只返回 value=3，客户提到的“门卫”没有进入后续处置。</p>
+          </div>
+          <div class="route-option agent">
+            <span class="label">AFTER / AGENT</span>
+            <strong>识别地点 → 查询规则 → 审核</strong>
+            <p>发现小区要求优先入柜，附客户原话与规则依据，提交人工确认。</p>
+          </div>
+        </div>
+        <div class="barcode" aria-hidden="true"></div>
+        <span class="ticket-number">INTENT 03 · DESIGNATED LOCATION</span>
+      </div>
+    </section>
+
+    <section class="facts" aria-label="项目关键事实">
+      <div class="fact"><strong>5</strong><span>只读 MCP 工具</span></div>
+      <div class="fact"><strong>2</strong><span>可启动后端应用</span></div>
+      <div class="fact"><strong>14</strong><span>自动化测试全部通过</span></div>
+      <div class="fact"><strong>8</strong><span>Racking 意图标签</span></div>
+    </section>
+
+    <section class="report-section" id="background">
+      <p class="section-kicker">01 / 背景与痛点</p>
+      <h2>原流程完成了打标，<br>但没有完成处置</h2>
+      <p class="section-intro">圆准达派件电联经过语音平台识别后，<strong>只有 value=2 下入柜，其余标签一律按送货上门处理</strong>。客户的真实需求与末端动作之间仍有断点。</p>
+
+      <div class="old-flow" aria-label="原电联打标流程">
+        <div class="flow-node"><small>INPUT</small><strong>95 号电联<br>客户与快递员通话</strong></div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <div class="flow-node"><small>TAG</small><strong>语音平台打标<br>Racking 1～8</strong></div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <div class="outcome-split">
+          <div class="outcome"><strong>value=2</strong> → IN_STATION，允许入柜</div>
+          <div class="outcome"><strong>其他值</strong> → resetCheck，送货上门</div>
+        </div>
+      </div>
+
+      <div class="pain-grid">
+        <article class="pain-card">
+          <h3>指定地点被一刀切</h3>
+          <p>客户说放门卫，原流程仍按普通上门，具体地点需求被丢弃。</p>
+          <div class="answer">→ 提取地点，结合规则生成备注、工单或审核任务</div>
+        </article>
+        <article class="pain-card">
+          <h3>打标缺少业务现场</h3>
+          <p>只看通话文本，不知道运单状态、客户偏好和网点入柜约束。</p>
+          <div class="answer">→ 通过 MCP 查询运单、轨迹、偏好与网点</div>
+        </article>
+        <article class="pain-card">
+          <h3>标签结果无法解释</h3>
+          <p>外部平台只返回 value，判错后难以定位原因。</p>
+          <div class="answer">→ 输出原文证据、判断原因、置信度并自动校验</div>
+        </article>
+        <article class="pain-card">
+          <h3>低置信结果直接执行</h3>
+          <p>语义混乱、系统音等结果仍可能触发默认动作，缺少审核与恢复。</p>
+          <div class="answer">→ 低置信转人工，工作流负责审核、重试与留痕</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="report-section" id="architecture">
+      <p class="section-kicker">02 / 系统架构</p>
+      <h2>AI 理解决策，Java 确定性执行</h2>
+      <p class="section-intro">大模型不直接访问数据库或下发指令。所有业务数据通过 MCP 工具获得，所有写操作经过 Java 校验与人工审核门。</p>
+      <div class="legend" aria-label="图例">
+        <span><i class="legend-line"></i>已落地能力</span>
+        <span><i class="legend-line planned"></i>后续规划能力</span>
+      </div>
+      <p class="scroll-hint">左右滑动查看完整架构图</p>
+
+      <div class="diagram-shell">
+        <svg viewBox="0 0 1200 740" role="img" aria-labelledby="architecture-title architecture-desc">
+          <title id="architecture-title">物流异常电联 Agent 系统架构图</title>
+          <desc id="architecture-desc">REST 和外部 MCP Client 已接入意图识别与五个只读工具。Agent 工作流、RAG、人工审核、写操作和执行记录以虚线表示为规划能力。</desc>
+          <defs>
+            <marker id="arrow-done" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2563a9"/></marker>
+            <marker id="arrow-plan" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7c858c"/></marker>
+          </defs>
+
+          <text x="70" y="25" class="svg-muted" font-size="12" letter-spacing="2">ACCESS / MODEL</text>
+          <rect x="70" y="45" width="280" height="82" fill="#eaf2fa" stroke="#2563a9" stroke-width="1.5"/>
+          <text x="90" y="76" class="svg-label" font-size="16" font-weight="700">REST API :8080</text>
+          <text x="90" y="101" class="svg-muted" font-size="13">意图识别入口 · 已落地</text>
+          <rect x="460" y="45" width="280" height="82" fill="#eaf2fa" stroke="#2563a9" stroke-width="1.5"/>
+          <text x="480" y="76" class="svg-label" font-size="16" font-weight="700">OpenAI 兼容大模型</text>
+          <text x="480" y="101" class="svg-muted" font-size="13">Spring AI ChatClient</text>
+          <rect x="850" y="45" width="280" height="82" fill="#eaf2fa" stroke="#2563a9" stroke-width="1.5"/>
+          <text x="870" y="76" class="svg-label" font-size="16" font-weight="700">标准 MCP Client</text>
+          <text x="870" y="101" class="svg-muted" font-size="13">工具发现与调用 · 已验证</text>
+
+          <text x="70" y="171" class="svg-muted" font-size="12" letter-spacing="2">AGENT DECISION</text>
+          <rect x="70" y="190" width="280" height="98" fill="#eaf2fa" stroke="#2563a9" stroke-width="1.5"/>
+          <text x="90" y="222" class="svg-label" font-size="16" font-weight="700">意图识别</text>
+          <text x="90" y="247" class="svg-muted" font-size="13">八类标签 · 证据 · 置信度</text>
+          <text x="90" y="269" class="svg-muted" font-size="13">Java 结果校验 · 已落地</text>
+          <rect x="460" y="190" width="280" height="98" fill="#fafafa" stroke="#7c858c" stroke-dasharray="6 4"/>
+          <text x="480" y="222" class="svg-label" font-size="16" font-weight="700">Agent 工作流</text>
+          <text x="480" y="247" class="svg-muted" font-size="13">MCP Client · 条件路由</text>
+          <text x="480" y="269" class="svg-muted" font-size="13">状态管理 · 规划</text>
+          <rect x="850" y="190" width="280" height="98" fill="#fafafa" stroke="#7c858c" stroke-dasharray="6 4"/>
+          <text x="870" y="222" class="svg-label" font-size="16" font-weight="700">人工审核门</text>
+          <text x="870" y="247" class="svg-muted" font-size="13">低置信 / 高风险动作</text>
+          <text x="870" y="269" class="svg-muted" font-size="13">确认与改判 · 规划</text>
+
+          <rect x="70" y="350" width="1060" height="122" fill="#f7fafc" stroke="#2563a9" stroke-width="1.5"/>
+          <text x="90" y="378" class="svg-label" font-size="14" font-weight="700">独立 MCP Server :8081 · 已落地</text>
+          <g>
+            <rect x="90" y="396" width="190" height="48" fill="#eaf2fa" stroke="#9bb9d4"/>
+            <text x="185" y="425" text-anchor="middle" class="svg-code" font-size="11">recognize_call_intent</text>
+            <rect x="296" y="396" width="180" height="48" fill="#eaf2fa" stroke="#9bb9d4"/>
+            <text x="386" y="425" text-anchor="middle" class="svg-code" font-size="11">get_waybill_info</text>
+            <rect x="492" y="396" width="180" height="48" fill="#eaf2fa" stroke="#9bb9d4"/>
+            <text x="582" y="425" text-anchor="middle" class="svg-code" font-size="11">get_tracking_info</text>
+            <rect x="688" y="396" width="202" height="48" fill="#eaf2fa" stroke="#9bb9d4"/>
+            <text x="789" y="425" text-anchor="middle" class="svg-code" font-size="11">get_customer_preference</text>
+            <rect x="906" y="396" width="202" height="48" fill="#eaf2fa" stroke="#9bb9d4"/>
+            <text x="1007" y="425" text-anchor="middle" class="svg-code" font-size="11">get_station_info</text>
+          </g>
+
+          <text x="70" y="520" class="svg-muted" font-size="12" letter-spacing="2">BUSINESS / KNOWLEDGE / ACTION</text>
+          <rect x="70" y="540" width="280" height="105" fill="#eaf2fa" stroke="#2563a9" stroke-width="1.5"/>
+          <text x="90" y="573" class="svg-label" font-size="16" font-weight="700">业务查询服务</text>
+          <text x="90" y="599" class="svg-muted" font-size="13">运单 / 轨迹 / 偏好 / 网点</text>
+          <text x="90" y="622" class="svg-muted" font-size="13">Mock 数据 · 已落地</text>
+          <rect x="460" y="540" width="280" height="105" fill="#fafafa" stroke="#7c858c" stroke-dasharray="6 4"/>
+          <text x="480" y="573" class="svg-label" font-size="16" font-weight="700">RAG 配送规则知识库</text>
+          <text x="480" y="599" class="svg-muted" font-size="13">Embedding + pgvector</text>
+          <text x="480" y="622" class="svg-muted" font-size="13">规则检索与重排 · 规划</text>
+          <rect x="850" y="540" width="280" height="105" fill="#fafafa" stroke="#7c858c" stroke-dasharray="6 4"/>
+          <text x="870" y="573" class="svg-label" font-size="16" font-weight="700">受控写操作</text>
+          <text x="870" y="599" class="svg-muted" font-size="13">配送备注 / 异常工单</text>
+          <text x="870" y="622" class="svg-muted" font-size="13">CheckType / 执行记录 · 规划</text>
+
+          <path d="M210 127 L210 190" stroke="#2563a9" stroke-width="2" marker-end="url(#arrow-done)"/>
+          <path d="M350 239 L430 239 L430 86 L460 86" fill="none" stroke="#2563a9" stroke-width="2" marker-end="url(#arrow-done)"/>
+          <path d="M990 127 L990 350" stroke="#2563a9" stroke-width="2" marker-end="url(#arrow-done)"/>
+          <path d="M210 472 L210 540" stroke="#2563a9" stroke-width="2" marker-end="url(#arrow-done)"/>
+          <path d="M600 288 L600 350" fill="none" stroke="#7c858c" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+          <path d="M740 239 L850 239" stroke="#7c858c" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+          <path d="M530 288 L530 350 L530 472 L600 472 L600 540" fill="none" stroke="#7c858c" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+          <path d="M990 288 L990 540" fill="none" stroke="#7c858c" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+          <path d="M670 288 L670 510 L990 510 L990 540" fill="none" stroke="#7c858c" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow-plan)"/>
+
+          <text x="70" y="700" class="svg-muted" font-size="12">应用边界：agent-admin 提供 REST；agent-mcp 提供 /mcp/sse；agent-business 提供 Mock 查询。</text>
+        </svg>
+        <div class="diagram-caption">实线：已落地能力　　虚线：后续规划能力。架构图同时展示当前系统与目标闭环，不代表全部模块已经交付。</div>
+      </div>
+    </section>
+
+    <section class="report-section" id="interaction">
+      <p class="section-kicker">03 / AGENT 交互逻辑</p>
+      <h2>一通电话，如何变成处置方案</h2>
+      <p class="section-intro">模型先理解客户，再通过工具补齐业务上下文；规则冲突或低置信结果不直接执行，而是带着证据进入人工审核。</p>
+      <p class="scroll-hint">左右滑动查看完整交互时序图</p>
+
+      <div class="diagram-shell">
+        <svg viewBox="0 0 1200 790" role="img" aria-labelledby="sequence-title sequence-desc">
+          <title id="sequence-title">Agent 交互时序图</title>
+          <desc id="sequence-desc">调用方提交通话文本后，Agent 识别意图并校验结果，再调用 MCP 查询业务数据，检索规则，生成方案，按需人工审核，最后执行并返回处置报告。</desc>
+          <defs>
+            <marker id="seq-done" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2563a9"/></marker>
+            <marker id="seq-plan" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7c858c"/></marker>
+          </defs>
+
+          <g>
+            <rect x="30" y="28" width="130" height="56" fill="#142b3a"/><text x="95" y="61" text-anchor="middle" fill="#fff" font-size="14">调用方</text>
+            <rect x="205" y="28" width="130" height="56" fill="#2563a9"/><text x="270" y="61" text-anchor="middle" fill="#fff" font-size="14">Agent</text>
+            <rect x="380" y="28" width="130" height="56" fill="#142b3a"/><text x="445" y="61" text-anchor="middle" fill="#fff" font-size="14">大模型</text>
+            <rect x="555" y="28" width="130" height="56" fill="#142b3a"/><text x="620" y="61" text-anchor="middle" fill="#fff" font-size="14">MCP Server</text>
+            <rect x="730" y="28" width="130" height="56" fill="#142b3a"/><text x="795" y="61" text-anchor="middle" fill="#fff" font-size="14">Java 业务</text>
+            <rect x="905" y="28" width="130" height="56" fill="#7c858c"/><text x="970" y="61" text-anchor="middle" fill="#fff" font-size="14">规则知识库</text>
+            <rect x="1060" y="28" width="110" height="56" fill="#7c858c"/><text x="1115" y="61" text-anchor="middle" fill="#fff" font-size="14">人工审核</text>
+          </g>
+          <g stroke="#d8e0e5" stroke-dasharray="3 5">
+            <path d="M95 84 V735"/><path d="M270 84 V735"/><path d="M445 84 V735"/><path d="M620 84 V735"/><path d="M795 84 V735"/><path d="M970 84 V735"/><path d="M1115 84 V735"/>
+          </g>
+
+          <g font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">
+            <text x="35" y="120" class="svg-code">01</text><path d="M95 134 H270" stroke="#2563a9" stroke-width="1.7" marker-end="url(#seq-done)"/><text x="105" y="126" class="svg-label">通话文本 + 运单号 + 电联编号</text>
+            <text x="210" y="164" class="svg-code">02</text><path d="M270 178 H445" stroke="#2563a9" stroke-width="1.7" marker-end="url(#seq-done)"/><text x="280" y="170" class="svg-label">意图识别 Prompt</text>
+            <text x="210" y="208" class="svg-code">03</text><path d="M445 222 H270" stroke="#2563a9" stroke-width="1.7" marker-end="url(#seq-done)"/><text x="280" y="214" class="svg-label">八类标签 + 地点 + 证据 + 置信度</text>
+            <text x="210" y="252" class="svg-code">04</text><path d="M270 266 C350 266 350 296 270 296" fill="none" stroke="#2563a9" stroke-width="1.7" marker-end="url(#seq-done)"/><text x="360" y="279" class="svg-label">Java 校验标签与证据</text>
+
+            <text x="210" y="326" class="svg-code">05</text><path d="M270 340 H620" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="280" y="332" class="svg-label">查询运单 / 轨迹 / 偏好 / 网点</text>
+            <text x="560" y="370" class="svg-code">06</text><path d="M620 384 H795" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="630" y="376" class="svg-label">执行 Java 查询工具</text>
+            <text x="735" y="414" class="svg-code">07</text><path d="M795 428 H270" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="420" y="420" class="svg-label">返回业务上下文</text>
+            <text x="210" y="458" class="svg-code">08</text><path d="M270 472 H970" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="470" y="464" class="svg-label">按小区 + 网点 + 产品 + 意图检索规则</text>
+            <text x="910" y="502" class="svg-code">09</text><path d="M970 516 H270" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="570" y="508" class="svg-label">返回相关条款</text>
+            <text x="210" y="546" class="svg-code">10</text><path d="M270 560 H445" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="280" y="552" class="svg-label">意图 + 上下文 + 规则</text>
+            <text x="385" y="590" class="svg-code">11</text><path d="M445 604 H270" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="280" y="596" class="svg-label">生成处置方案</text>
+            <text x="210" y="634" class="svg-code">12</text><path d="M270 648 H1115" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="635" y="640" class="svg-label">低置信 / 规则冲突时提交审核，确认或改判后返回</text>
+            <text x="210" y="678" class="svg-code">13</text><path d="M270 692 H795" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="440" y="684" class="svg-label">校验后执行备注 / 工单 / CheckType</text>
+            <text x="35" y="722" class="svg-code">14</text><path d="M270 736 H95" stroke="#7c858c" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#seq-plan)"/><text x="105" y="728" class="svg-label">返回处置报告与执行记录</text>
+          </g>
+        </svg>
+        <div class="diagram-caption">已落地：意图识别、结果校验、MCP 工具与 Java 查询。虚线部分：由 Agent 工作流自动串联、RAG、审核与写操作，属于目标交互闭环。</div>
+      </div>
+
+      <div class="example-strip">
+        <strong>“放小区门卫”</strong>
+        <p>识别为指定地点 → 运单正在派件 → 客户历史上也偏好门卫 → 检索到“小区优先放快递柜，门卫需确认” → <strong>不直接执行，附客户原话和规则依据转人工。</strong></p>
+      </div>
+    </section>
+
+    <section class="report-section" id="tools">
+      <p class="section-kicker">04 / MCP 工具与职责边界</p>
+      <h2>模型提出请求，Java 完成动作</h2>
+      <div class="tool-list">
+        <div class="tool-row"><code>recognize_call_intent</code><span>识别八类电联意图，返回证据、置信度、地点要素和审核标记</span></div>
+        <div class="tool-row"><code>get_waybill_info</code><span>查询产品标识、运单状态、收件小区和配送网点</span></div>
+        <div class="tool-row"><code>get_tracking_info</code><span>查询派件上车、电联等物流操作轨迹</span></div>
+        <div class="tool-row"><code>get_customer_preference</code><span>查询客户配送偏好、偏好地点和最近电联意图</span></div>
+        <div class="tool-row"><code>get_station_info</code><span>查询网点入柜配置、排除产品和配送约束</span></div>
+      </div>
+      <p class="readonly-note">当前全部为只读工具。配送备注、异常工单和 CheckType 写操作不直接暴露，防止绕过人工审核门。</p>
+
+      <div class="boundary" style="margin-top: 30px;">
+        <div class="boundary-column">
+          <h3>交给大模型</h3>
+          <ul>
+            <li>理解非结构化通话文本</li>
+            <li>识别意图，提取地点与时间</li>
+            <li>根据上下文选择查询工具</li>
+            <li>结合规则生成处置建议</li>
+            <li>说明低置信或转人工原因</li>
+          </ul>
+        </div>
+        <div class="boundary-column">
+          <h3>必须交给 Java</h3>
+          <ul>
+            <li>参数、权限和运单状态校验</li>
+            <li>Racking 标签与 CheckType 映射</li>
+            <li>MCP 工具执行与异常处理</li>
+            <li>审核门、幂等、重试和状态持久化</li>
+            <li>备注、工单和 CheckType 最终写操作</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="report-section" id="progress">
+      <p class="section-kicker">05 / 当前成果与下一步</p>
+      <h2>底座已验证，闭环待打通</h2>
+      <p class="section-intro">当前完成意图识别和 MCP 工具服务，不将规划能力包装成既有成果，也不宣称未经验证的真实模型准确率。</p>
+
+      <div class="proof-grid">
+        <article class="proof-card"><span class="proof-status">BUILD PASSED</span><strong>14 个测试全部通过</strong><p>全量 mvn clean package 成功，覆盖公共契约、意图识别、REST 与 MCP。</p></article>
+        <article class="proof-card"><span class="proof-status">PROTOCOL VERIFIED</span><strong>真实 MCP SSE 调用</strong><p>Java MCP Client 完成工具发现、运单查询和意图识别协议级验证。</p></article>
+        <article class="proof-card"><span class="proof-status">5 MODULES</span><strong>多模块工程已建立</strong><p>common、business、core、admin、mcp 分层，两个后端应用可独立启动。</p></article>
+      </div>
+
+      <div class="next-list" aria-label="下一阶段计划">
+        <div class="next-item"><span class="priority">P1</span><strong>接入 Agent MCP Client 与工作流</strong><span>自主完成“识别 → 查询 → 再判断”，不再依赖外部客户端逐个调用。</span></div>
+        <div class="next-item"><span class="priority">P2</span><strong>建设 RAG 配送规则知识库</strong><span>让指定地点和异常场景依据真实条款处置。</span></div>
+        <div class="next-item"><span class="priority">P3</span><strong>增加审核状态与 Mock 写操作</strong><span>打通“方案 → 审核 → 备注 / 工单 / CheckType”闭环。</span></div>
+        <div class="next-item"><span class="priority">P4</span><strong>建立评估与 Langfuse 观测</strong><span>量化准确率、工具成功率、Token 成本和任务耗时。</span></div>
+      </div>
+    </section>
+
+    <section class="closing" aria-label="项目总结">
+      <p>本项目不是给原系统简单增加一个分类接口，而是在建设一套<strong>能理解客户、能查询业务、能依据规则、能受控执行</strong>的物流异常处置 Agent。</p>
+    </section>
+    <footer class="footer"><span>LOGISTICS EXCEPTION HANDLING AGENT</span><span>阶段口径：2026-11-17 · 实线已落地 / 虚线规划中</span></footer>
+  </main>
+</body>
+</html>

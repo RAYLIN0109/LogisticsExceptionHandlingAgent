@@ -1,0 +1,32 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${MCP_SERVER_PORT:8081}
+
+spring:
+  application:
+    name: agent-mcp
+  ai:
+    openai:
+      base-url: ${LLM_BASE_URL:https://api.openai.com}
+      api-key: ${LLM_API_KEY:local-demo-key-not-used}
+    mcp:
+      server:
+        name: logistics-exception-mcp
+        version: 0.1.0
+        type: SYNC
+        stdio: false
+        instructions: 圆准达电联处置只读工具服务，提供意图识别、运单、轨迹、客户偏好和网点查询。
+        sse-endpoint: /mcp/sse
+        sse-message-endpoint: /mcp/message
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+
+agent:
+  intent:
+    provider: ${INTENT_PROVIDER:mock}
+    confidence-threshold: ${INTENT_CONFIDENCE_THRESHOLD:0.75}
+    model: ${LLM_MODEL:qwen-plus}
+    temperature: ${LLM_TEMPERATURE:0.0}
